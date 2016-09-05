@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <title>Todo List</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="stylesheets/todo.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="javascripts/handlebars-v4.0.5.js"></script>
+  <script src="javascripts/todo.js"></script>
+</head>
+<body>
+  <input type="checkbox" id="menu-toggle"/>
+  <label for="menu-toggle">
+  <img src="images/menu_icon.png" alt="Responsive Hamburger" />
+  </label>
+  <div id="sidebar">
+    <table id="all_list">
+      <thead>
+        <tr>
+          <th><img src="images/list_icon.png" alt="list icon" />
+          <th>All Todos</th>
+          <th><span class="count"></span></th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+    <table id="completed_list">
+      <thead>
+        <tr>
+          <th><img src="images/completed_icon.png" alt="completed icon" /></th>
+          <th>Completed</th>
+          <th><span class="count"></span></th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+  <div id="content">
+    <h2 id="list_title">All Todos<em id="title_todo_count"></em></h2>
+    <table>
+      <thead>
+        <tr>
+          <th><img src="images/plus_icon.png" alt="Add New To Do" /></th>
+          <th>Add new to do</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+  <div class="modal_layer"></div>
+  <div id="modal" class="modal_selected">
+    <form action="#" method="post">
+    <fieldset>
+      <dl>
+        <dt><label for="title">Title</label></dt>
+        <dd><input type="text" name="title" id="title" placeholder="1" /></dd>
+        <dt><label for="due_day">Due Date</label></dt>
+        <dd>
+          <select id="due_day" name="due_day">
+            <option>Day</option>
+            <option value="01">1</option>
+            <option value="02">2</option>
+            <option value="03">3</option>
+            <option value="04">4</option>
+            <option value="05">5</option>
+            <option value="06">6</option>
+            <option value="07">7</option>
+            <option value="08">8</option>
+            <option value="09">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
+            <option value="31">31</option>
+          </select>
+          <select id="due_month" name="due_month">
+            <option>Month</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <select id="due_year" name="due_year">
+            <option>Year</option>
+            <option>2016</option>
+            <option>2017</option>
+            <option>2018</option>
+            <option>2019</option>
+            <option>2020</option>
+            <option>2021</option>
+            <option>2022</option>
+            <option>2023</option>
+            <option>2024</option>
+            <option>2025</option>
+          </select>
+        </dd>
+        <dt><label for="description">Description</label></dt>
+        <dd><textarea name="description" id="description" placeholder="Description"></textarea></dd>
+      </dl>
+      <input type="button" id="save" name="save" value="Save" />
+      <input type="button" id="mark" name="mark" value="Mark As Complete" />
+      <input type="hidden" id="hidden" value="" />
+    </fieldset>
+    </form>
+  </div>
+<script id="list_item" type="text/x-handlebars">
+  <tr data-id="{{id}}" {{#if completed}} class="checked" {{/if}}>
+    <td></td>
+    <td class="todo_item">
+    {{title}} -
+    {{#if valid_due_date}}
+    {{due_month}}/{{due_year}}
+    {{else}}No Due Date
+    {{/if}}</td>
+    <td><img src="images/trash_bin_icon.png" alt="delete item" class="delete_item"/></td>
+  </tr>
+</script>
+<script id="sidebar_list_item" type="text/x-handlebars">
+  <tr>
+    <td></td>
+    <td>{{due_string}}</td>
+    <td><span class="count">{{count}}</span></td>
+  </tr>
+</script>
+</body>
+
+</html>
