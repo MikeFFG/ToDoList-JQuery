@@ -2,7 +2,8 @@ $(function() {
 
 /************************* Initialization **************************/
 
-  var listItemTemplate = Handlebars.compile($("#list_item").html()),
+  var todoRowTemplate = Handlebars.compile($("#todoRow").html()),
+      todoListTemplate = Handlebars.compile($("#todoList").html()),
       sidebarItemTemplate = Handlebars.compile($("#sidebar_list_item").html()),
       todos = { completed:[], notCompleted: [] },
       newItemOnSave = false,
@@ -14,12 +15,69 @@ $(function() {
 
   // "Init" on Window Load && Set initial selection
   $(window).on("load", function() {
+    Handlebars.registerPartial("todoRowTemplate", $("#todoRow").html());
     todos = JSON.parse(localStorage.getItem("todoArray")) ||
             { completed: [], notCompleted: [] };
-    syncViewFromModel();
+    syncContentView();
     syncSidebarList();
     $("#all_list tr")[0].click();
   });
+
+  /************************* Objects **************************/
+
+  function Todo(params) {
+    this.completed = params.completed || false;
+    this.title = params.title || "";
+    this.description = params.description || "";
+    this.dueDay = params.dueDay || "";
+    this.dueMonth = params.dueMonth || "";
+    this.dueYear = params.dueYear || "";
+  }
+
+  Todo.prototype.monthAndYear = function() {
+    return this.dueMonth + "/" + this.dueYear;
+  };
+
+  Todo.prototype.setValidDueDateProp = function() {
+    if (this.dueMonth !== "Month" && this.dueYear !== "Year") {
+      this.validDueDate = true;
+    } else {
+      this.validDueDate = false;
+    }
+  };
+
+  var todoList = {
+    list: [],
+    getCompleted: function() {
+      return this.list.filter(function(todo) {
+        return todo.completed === true;
+      });
+    },
+    getNotCompleted: function() {
+      return this.list.filter(function(todo) {
+        return todo.completed === false;
+      });
+    },
+    getFiltered: function(filter) {
+      return this.list;
+    },
+    getSorted: function() {
+
+    },
+    addTodo: function(todo) {
+      this.list.push(todo);
+    },
+    removeTodo: function() {
+
+    },
+    modifyTodo: function() {
+
+    },
+    count: function() {
+      return this.list.length;
+    }
+
+  };
 
 /************************* Event Handlers **************************/
 
@@ -40,19 +98,20 @@ $(function() {
 
   // Save Todo
   $("#save").on("click", function() {
-    var listData = populateListData();
+    var todoItem = new Todo(getTodoDataFromModalFields());
 
-    setValidDueDateProp(listData);
+    todoItem.setValidDueDateProp();
     if (newItemOnSave === true) {
-      listData.id = setUniqueID();
-      addToModel(listData);
+      todoItem.id = setUniqueID();
+      todoList.addTodo((todoItem));
+      // addToModel(todoItem);
     } else {
-      listData.id = +$("#hidden").val();
-      updateModel(listData);
+      todoItem.id = +$("#hidden").val();
+      updateModel(todoItem);
     }
 
     hideModal();
-    syncViewFromModel();
+    syncContentView();
   });
 
   // Mark as Complete
@@ -63,8 +122,7 @@ $(function() {
       alert("Whoops! Cannot mark an unsaved item as complete!");
     } else {
       markAsComplete(todoID);
-      syncViewFromModel();
-      syncSidebarList();
+      syncContentView();
       hideModal();
     }
   });
@@ -80,7 +138,7 @@ $(function() {
     }
 
     $closestRow.remove();
-    syncViewFromModel();
+    syncContentView();
   });
 
   // Window Unload
@@ -97,7 +155,7 @@ $(function() {
     $sidebar.find("tr").removeClass("selected");
     $this.addClass("selected");
     $("#list_title").html(titleText + "<em id='title_todo_count'></em>");
-    syncViewFromModel();
+    syncContentView();
   });
 
   // Close modal on outside click
@@ -132,14 +190,6 @@ $(function() {
     }
   }
 
-  function setValidDueDateProp(todo) {
-    if (todo.due_month !== "Month" && todo.due_year !== "Year") {
-      todo.valid_due_date = true;
-    } else {
-      todo.valid_due_date = false;
-    }
-  }
-
   function markAsComplete(todoID) {
     for (var i = 0; i < todos.notCompleted.length; i++) {
       if (todos.notCompleted[i].id === +todoID) {
@@ -167,19 +217,11 @@ $(function() {
     $modal_layer.fadeOut(fadeDuration);
   }
 
-  function addListRow(listItem) {
-    $contentTable.find("tbody").append(listItemTemplate(listItem));
-  }
 
-  function syncViewFromModel() {
-    var filteredList = filterList();
-
-    $contentTable.find("tbody tr").remove();
-
+  function syncContentView() {
+    var filteredList = todoList.getFiltered();
     if (filteredList) {
-      filteredList.forEach(function(todo) {
-        addListRow(todo);
-      });
+      $contentTable.find("tbody").html(todoListTemplate({ todos: filteredList}));
     }
 
     setTitleTodoCount();
@@ -213,8 +255,8 @@ $(function() {
     var all_months = [];
     function addMonthFromTodo(todo) {
       var month = {
-            due_month: todo.due_month,
-            due_year: todo.due_year,
+            dueMonth: todo.dueMonth,
+            dueYear: todo.dueYear,
             count: 1
           };
       setDateString(month);
@@ -238,9 +280,9 @@ $(function() {
   function setModalFields(todoID) {
     var todo = locateToDoFromID(todoID);
     $("#title").val(todo.title);
-    $("#due_day").val(todo.due_day);
-    $("#due_month").val(todo.due_month);
-    $("#due_year").val(todo.due_year);
+    $("#due_day").val(todo.dueDay);
+    $("#due_month").val(todo.dueMonth);
+    $("#due_year").val(todo.dueYear);
     $("#description").val(todo.description);
     $("#hidden").val(todo.id);
   }
@@ -254,12 +296,12 @@ $(function() {
     $("#hidden").val("");
   }
 
-  function populateListData() {
+  function getTodoDataFromModalFields() {
     return {
       title: $("#title").val(),
-      due_day: $("#due_day").val(),
-      due_month: $("#due_month").val(),
-      due_year: $("#due_year").val(),
+      dueDay: $("#due_day").val(),
+      dueMonth: $("#due_month").val(),
+      dueYear: $("#due_year").val(),
       description: $("#description").val(),
       completed: false
     };
@@ -272,7 +314,7 @@ $(function() {
         filterString = $selectedRow.find("th").eq(1).text() ||
                        $selectedRow.find("td").eq(1).text();
     function todoMatchesFilterString(todo) {
-      return (todo.due_month + "/" + todo.due_year === filterString);
+      return (todo.dueMonth + "/" + todo.dueYear === filterString);
     }
 
     if (filterString === "All Todos") {
@@ -293,27 +335,27 @@ $(function() {
   }
 
   function sortSidebarRows(a, b) {
-    if (a.due_string === "No Due Date") { return -1; }
-    if (b.due_string === "No Due Date") { return 1; }
+    if (a.dueString === "No Due Date") { return -1; }
+    if (b.dueString === "No Due Date") { return 1; }
 
-    if (a.due_year < b.due_year) {
+    if (a.dueYear < b.dueYear) {
       return -1;
-    } else if (a.due_year > b.due_year) {
+    } else if (a.dueYear > b.dueYear) {
       return 1;
     } else {
-      if (a.due_month < b.due_month) {
+      if (a.dueMonth < b.dueMonth) {
         return -1;
-      } else if (a.due_month > b.due_month) {
+      } else if (a.dueMonth > b.dueMonth) {
         return 1;
       }
     }
     return 0;
   }
 
-  function findMonthMatch(all_months, month) {
-    for (var i = 0; i < all_months.length; i++) {
-      if (all_months[i].due_string === month.due_string) {
-        all_months[i].count++;
+  function findMonthMatch(allMonths, month) {
+    for (var i = 0; i < allMonths.length; i++) {
+      if (allMonths[i].dueString === month.dueString) {
+        allMonths[i].count++;
         return true;
       }
     }
@@ -321,14 +363,14 @@ $(function() {
   }
 
   function todoHasInvalidDate(todo) {
-    return todo.valid_due_date === false;
+    return todo.validDueDate === false;
   }
 
   function setDateString(month) {
-    if (month.due_month !== "Month" && month.due_year !== "Year") {
-      month.due_string = month.due_month + "/" + month.due_year;
+    if (month.dueMonth !== "Month" && month.dueYear !== "Year") {
+      month.dueString = month.dueMonth + "/" + month.dueYear;
     } else {
-      month.due_string =  "No Due Date";
+      month.dueString =  "No Due Date";
     }
   }
 
