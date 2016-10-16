@@ -141,14 +141,7 @@
     {{dueMonth}}/{{dueYear}}
     {{else}}No Due Date
     {{/if}}</td>
-    <td><img src="images/trash_bin_icon.png" alt="delete item" class="delete_item"/></td>
-  </tr>
-</script>
-<script id="sidebar_list_item" type="text/x-handlebars">
-  <tr>
-    <td></td>
-    <td>{{dueString}}</td>
-    <td><span class="count">{{count}}</span></td>
+    <td class="delete_item"><img src="images/trash_bin_icon.png" alt="delete item" /></td>
   </tr>
 </script>
 <script id="todoList" type="text/x-handlebars">
@@ -156,6 +149,17 @@
   {{> todoRowTemplate}}
   {{/each}}
 </script>
+<script id="sidebarRow" type="text/x-handlebars">
+  <tr>
+    <td></td>
+    <td>{{monthAndYear}}</td>
+    <td><span class="count">{{count}}</span></td>
+  </tr>
+</script>
+<script id="sidebarList" type="text/x-handlebars">
+  {{#each items}}
+  {{> sidebarRowTemplate}}
+  {{/each}}
+</script>
 </body>
-
 </html>

@@ -4,8 +4,8 @@ $(function() {
 
   var todoRowTemplate = Handlebars.compile($("#todoRow").html()),
       todoListTemplate = Handlebars.compile($("#todoList").html()),
-      sidebarItemTemplate = Handlebars.compile($("#sidebar_list_item").html()),
-      todos = { completed:[], notCompleted: [] },
+      sidebarRowTemplate = Handlebars.compile($("#sidebarRow").html()),
+      sidebarListTemplate = Handlebars.compile($("#sidebarList").html()),
       newItemOnSave = false,
       $contentTable = $("#content table"),
       $sidebar = $("#sidebar"),
@@ -16,10 +16,10 @@ $(function() {
   // "Init" on Window Load && Set initial selection
   $(window).on("load", function() {
     Handlebars.registerPartial("todoRowTemplate", $("#todoRow").html());
-    todos = JSON.parse(localStorage.getItem("todoArray")) ||
-            { completed: [], notCompleted: [] };
+    Handlebars.registerPartial("sidebarRowTemplate", $("#sidebarRow").html());
+    todoList.list = JSON.parse(localStorage.getItem("todoArray")) || [];
+    // sidebarList.monthLists = JSON.parse(localStorage.getItem("sidebarArray")) || {};
     syncContentView();
-    syncSidebarList();
     $("#all_list tr")[0].click();
   });
 
@@ -32,10 +32,15 @@ $(function() {
     this.dueDay = params.dueDay || "";
     this.dueMonth = params.dueMonth || "";
     this.dueYear = params.dueYear || "";
+    this.id = params.id || setUniqueID();
   }
 
   Todo.prototype.monthAndYear = function() {
-    return this.dueMonth + "/" + this.dueYear;
+    if (this.validDueDate === true) {
+      return this.dueMonth + "/" + this.dueYear;
+    } else {
+      return "No Due Date";
+    }
   };
 
   Todo.prototype.setValidDueDateProp = function() {
@@ -53,6 +58,9 @@ $(function() {
         return todo.completed === true;
       });
     },
+    getTodo: function(todoID) {
+      return this.list[todoID];
+    },
     getNotCompleted: function() {
       return this.list.filter(function(todo) {
         return todo.completed === false;
@@ -66,17 +74,85 @@ $(function() {
     },
     addTodo: function(todo) {
       this.list.push(todo);
+      sidebarList.addTodo(todo);
     },
-    removeTodo: function() {
-
+    markAsComplete: function(todoID) {
+      for (var i = 0; i < this.count(); i++) {
+        if (this.list[i].id === +todoID) {
+          this.list[i].completed = true;
+          break;
+        }
+      }
     },
-    modifyTodo: function() {
-
+    removeTodo: function(todoID) {
+      for (var i = 0; i < this.count(); i++) {
+        if (this.list[i].id === +todoID) {
+          this.list = sliceList(this.list, i);
+          break;
+        }
+      }
+    },
+    modifyTodo: function(todoItem) {
+      var todoToChange = this.getTodo(todoItem.id);
+      for (var prop in todoToChange) {
+        todoToChange[prop] = todoItem[prop];
+      }
     },
     count: function() {
       return this.list.length;
     }
+  };
 
+  var sidebarList = {
+    monthLists: {},
+    update: function() {
+      var self = this;
+      todoList.list.forEach(function(todo) {
+        self.addTodo(todo);
+      });
+    },
+    addTodo: function(todo) {
+      var month = todo.monthAndYear();
+      if (this.monthLists[month]) {
+        this.monthLists[month].push(todo);
+        this.monthLists[month].count++;
+      } else {
+        this.monthLists[month] = [todo];
+        this.monthLists[month].count = 1;
+      }
+    },
+    removeTodo: function(todoID) {
+      for (var i = 0; i < this.count(); i++) {
+        if (this.monthLists[i].id === +todoID) {
+          this.monthLists = sliceList(this.monthLists, i);
+          break;
+        }
+      }
+    },
+    getMonth: function(month) {
+      return this.monthLists[month];
+    },
+    getCompletedMonth: function(month) {
+      return this.monthLists[month].filter(function(todo) {
+        return todo.completed === true;
+      });
+    },
+    getCompleted: function() {
+      var completedMonths = {};
+      for (var month in this.monthLists) {
+        var completed = this.getCompletedMonth(month);
+        if (completed.length !== 0) {
+          completedMonths[month] = completed;
+        }
+      }
+      return completedMonths;
+    },
+    count: function() {
+      return todoList.count();
+    },
+    completedCount: function() {
+      return todoList.getCompleted().length;
+    }
   };
 
 /************************* Event Handlers **************************/
@@ -99,45 +175,47 @@ $(function() {
   // Save Todo
   $("#save").on("click", function() {
     var todoItem = new Todo(getTodoDataFromModalFields());
-
     todoItem.setValidDueDateProp();
+
     if (newItemOnSave === true) {
       todoItem.id = setUniqueID();
-      todoList.addTodo((todoItem));
-      // addToModel(todoItem);
+      todoItem.completed = false;
+      todoList.addTodo(todoItem);
     } else {
       todoItem.id = +$("#hidden").val();
-      updateModel(todoItem);
+      todoItem.completed = todoList.list[todoItem.id].completed;
+      todoList.modifyTodo(todoItem);
     }
 
     hideModal();
     syncContentView();
   });
 
-  // Mark as Complete
+  // Mark as Complete Via Modal
   $("#mark").on("click", function() {
     var todoID = +$("#hidden").val();
 
     if (newItemOnSave) {
       alert("Whoops! Cannot mark an unsaved item as complete!");
     } else {
-      markAsComplete(todoID);
+      todoList.markAsComplete(todoID);
       syncContentView();
       hideModal();
     }
   });
 
+  // Mark as Complete Via Checkbox
+  $contentTable.on("click", "tbody td:first-of-type", function() {
+    var todoID = +$(this).closest("tr").data("id");
+    todoList.markAsComplete(todoID);
+    syncContentView();
+  });
+
   // Delete Todo
   $contentTable.on("click", ".delete_item", function() {
-    var $closestRow = $(this).closest("tr");
-
-    if ($closestRow.hasClass("checked")) {
-      removeFromModel("completed", $closestRow.data("id"));
-    } else {
-      removeFromModel("notCompleted", $closestRow.data("id"));
-    }
-
-    $closestRow.remove();
+    todoList.removeTodo($(this).closest("tr").data("id"));
+    sidebarList.removeTodo($(this).closest("tr").data("id"));
+    sidebarList.update();
     syncContentView();
   });
 
@@ -163,48 +241,6 @@ $(function() {
     hideModal();
   });
 
-/************************ Model Functions ***********************/
-
-  function addToModel(listItem) {
-    if (listItem.completed) {
-      todos.completed.push(listItem);
-    } else {
-      todos.notCompleted.push(listItem);
-    }
-  }
-
-  function updateModel(listItem) {
-    var todoToChange = locateToDoFromID(listItem.id);
-
-    for (var prop in todoToChange) {
-      todoToChange[prop] = listItem[prop];
-    }
-  }
-
-  function removeFromModel(listString, todoID) {
-    for (var i = 0; i < todos[listString].length; i++) {
-      if (todos[listString][i].id === +todoID) {
-        todos[listString] = sliceList(todos[listString], i);
-        break;
-      }
-    }
-  }
-
-  function markAsComplete(todoID) {
-    for (var i = 0; i < todos.notCompleted.length; i++) {
-      if (todos.notCompleted[i].id === +todoID) {
-        moveItemToCompleted(i);
-        break;
-      }
-    }
-  }
-
-  function moveItemToCompleted(index) {
-    todos.notCompleted[index].completed = true;
-    todos.completed.push(todos.notCompleted[index]);
-    todos.notCompleted = sliceList(todos.notCompleted, index);
-  }
-
 /************************* View Helpers **************************/
 
   function showModal() {
@@ -217,68 +253,47 @@ $(function() {
     $modal_layer.fadeOut(fadeDuration);
   }
 
-
   function syncContentView() {
     var filteredList = todoList.getFiltered();
     if (filteredList) {
       $contentTable.find("tbody").html(todoListTemplate({ todos: filteredList}));
     }
 
-    setTitleTodoCount();
+    sidebarList.update();
+
     syncSidebarList();
   }
 
   function syncSidebarList() {
-    var allTodos = getCombinedTodoList(),
-        selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
+    var selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
 
     setSidebarCounts();
     $sidebar.find("tbody tr").remove();
-
-    setSidebarMonthTotals(allTodos, "#all_list");
-    setSidebarMonthTotals(todos.completed, "#completed_list");
+    setSidebarMonthTotals(sidebarList.monthLists, "#all_list");
+    setSidebarMonthTotals(sidebarList.getCompleted(), "#completed_list");
 
     $sidebar.find("tr").eq(selectedIndex).addClass("selected");
   }
 
-  function setTitleTodoCount() {
-    var count = $("#content tbody tr").length;
-    $("#title_todo_count").text(count);
-  }
-
   function setSidebarCounts() {
-    $("#all_list thead .count").text(getCombinedTodoList().length);
-    $("#completed_list thead .count").text(todos.completed.length);
+    $("#all_list thead .count").text(sidebarList.count);
+    $("#completed_list thead .count").text(sidebarList.completedCount);
   }
 
   function setSidebarMonthTotals(list, listID) {
-    var all_months = [];
-    function addMonthFromTodo(todo) {
-      var month = {
-            dueMonth: todo.dueMonth,
-            dueYear: todo.dueYear,
-            count: 1
-          };
-      setDateString(month);
-      if (all_months.length === 0 || !findMonthMatch(all_months, month)) {
-        all_months.push(month);
-      }
+    var allMonths = [];
+    for (var month in list) {
+      var monthObject = {
+        monthAndYear: month,
+        count: list[month].length
+      };
+      allMonths.push(monthObject);
     }
-
-    list.forEach(addMonthFromTodo);
-    appendSidebarRows(all_months, listID);
-  }
-
-  function appendSidebarRows(all_months, listID) {
-    all_months.sort(sortSidebarRows);
-
-    all_months.forEach(function(month) {
-      $(listID).find("tbody").append(sidebarItemTemplate(month));
-    });
+    $sidebar.find(listID + " tbody").html(sidebarListTemplate({ items: allMonths}));
   }
 
   function setModalFields(todoID) {
-    var todo = locateToDoFromID(todoID);
+    var todo = todoList.getTodo(todoID);
     $("#title").val(todo.title);
     $("#due_day").val(todo.dueDay);
     $("#due_month").val(todo.dueMonth);
@@ -298,12 +313,11 @@ $(function() {
 
   function getTodoDataFromModalFields() {
     return {
-      title: $("#title").val(),
+      title: $("#title").val() || "No Title",
       dueDay: $("#due_day").val(),
       dueMonth: $("#due_month").val(),
       dueYear: $("#due_year").val(),
-      description: $("#description").val(),
-      completed: false
+      description: $("#description").val()
     };
   }
 
@@ -320,15 +334,15 @@ $(function() {
     if (filterString === "All Todos") {
       return getCombinedTodoList();
     } else if (filterString === "Completed") {
-      return todos.completed;
+      return todoList.getCompleted();
     } else if (filterString === "No Due Date" &&
               $selectedRow.parents("table").is("#all_list")) {
       return getCombinedTodoList().filter(todoHasInvalidDate);
     } else if (filterString === "No Due Date" &&
               $selectedRow.parents("table").is("#completed_list")) {
-      return todos.completed.filter(todoHasInvalidDate);
+      return todoList.getCompleted().filter(todoHasInvalidDate);
     } else if ($selectedRow.parents("table").is("#completed_list")) {
-      return todos.completed.filter(todoMatchesFilterString);
+      return todoList.getCompleted().filter(todoMatchesFilterString);
     } else {
       return getCombinedTodoList().filter(todoMatchesFilterString);
     }
@@ -375,32 +389,20 @@ $(function() {
   }
 
   function saveToLocalStorage() {
-    localStorage.setItem("todoArray", JSON.stringify(todos));
+    localStorage.setItem("todoArray", JSON.stringify(todoList.list));
+    // localStorage.setItem("sidebarArray", JSON.stringify(sidebarList.monthLists));
   }
 
   function setUniqueID() {
-    var currentHighestID = -1,
-        combinedTodos = getCombinedTodoList();
-
-    combinedTodos.forEach(function(todo) {
-      if (+todo.id > currentHighestID) { currentHighestID = +todo.id; }
-    });
-
-    return ++currentHighestID;
+    if (todoList.list.length !== 0) {
+      return todoList.list[todoList.list.length - 1].id + 1;
+    } else {
+      return 0;
+    }
   }
 
   function getCombinedTodoList() {
-    return todos.notCompleted.concat(todos.completed);
-  }
-
-  function locateToDoFromID(todoID) {
-    var combinedTodos = getCombinedTodoList();
-
-    for (var i = 0; i < combinedTodos.length; i++) {
-      if (combinedTodos[i].id === +todoID) {
-        return combinedTodos[i];
-      }
-    }
+    return todoList.list;
   }
 
   function sliceList(list, index) {
