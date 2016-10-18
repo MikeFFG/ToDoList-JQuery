@@ -84,6 +84,14 @@ $(function() {
         }
       }
     },
+    markAsNotComplete: function(todoID) {
+      for(var i = 0; i < this.count(); i++) {
+        if (this.list[i].id === +todoID) {
+          this.list[i].completed = false;
+          break;
+        }
+      }
+    },
     removeTodo: function(todoID) {
       for (var i = 0; i < this.count(); i++) {
         if (this.list[i].id === +todoID) {
@@ -106,10 +114,11 @@ $(function() {
   var sidebarList = {
     monthLists: {},
     update: function() {
-      var self = this;
-      todoList.list.forEach(function(todo) {
-        self.addTodo(todo);
-      });
+      // var self = this;
+      // todoList.list.forEach(function(todo) {
+      //   // debugger
+      //   self.addTodo(todo);
+      // });
     },
     addTodo: function(todo) {
       var month = todo.monthAndYear();
@@ -180,6 +189,7 @@ $(function() {
     if (newItemOnSave === true) {
       todoItem.id = setUniqueID();
       todoItem.completed = false;
+      // debugger
       todoList.addTodo(todoItem);
     } else {
       todoItem.id = +$("#hidden").val();
@@ -206,8 +216,14 @@ $(function() {
 
   // Mark as Complete Via Checkbox
   $contentTable.on("click", "tbody td:first-of-type", function() {
-    var todoID = +$(this).closest("tr").data("id");
-    todoList.markAsComplete(todoID);
+    var todoRow = $(this).closest("tr"),
+        todoID = +todoRow.data("id");
+    if (todoRow.hasClass("checked")) {
+      todoList.markAsNotComplete(todoID);
+      todoRow.removeClass("checked");
+    } else {
+      todoList.markAsComplete(todoID);
+    }
     syncContentView();
   });
 
@@ -259,9 +275,13 @@ $(function() {
       $contentTable.find("tbody").html(todoListTemplate({ todos: filteredList}));
     }
 
+    setTitleCount(filteredList.length);
     sidebarList.update();
-
     syncSidebarList();
+  }
+
+  function setTitleCount(number) {
+    $("#title_todo_count").text(number);
   }
 
   function syncSidebarList() {
