@@ -78,7 +78,7 @@ $(function() {
     },
     markAsComplete: function(todoID) {
       for (var i = 0; i < this.count(); i++) {
-        if (this.list[i].id === +todoID) {
+        if (+this.list[i].id === +todoID) {
           this.list[i].completed = true;
           break;
         }
@@ -86,7 +86,7 @@ $(function() {
     },
     markAsNotComplete: function(todoID) {
       for(var i = 0; i < this.count(); i++) {
-        if (this.list[i].id === +todoID) {
+        if (+this.list[i].id === +todoID) {
           this.list[i].completed = false;
           break;
         }
@@ -116,7 +116,6 @@ $(function() {
     update: function() {
       // var self = this;
       // todoList.list.forEach(function(todo) {
-      //   // debugger
       //   self.addTodo(todo);
       // });
     },
@@ -189,11 +188,8 @@ $(function() {
     if (newItemOnSave === true) {
       todoItem.id = setUniqueID();
       todoItem.completed = false;
-      // debugger
       todoList.addTodo(todoItem);
     } else {
-      todoItem.id = +$("#hidden").val();
-      todoItem.completed = todoList.list[todoItem.id].completed;
       todoList.modifyTodo(todoItem);
     }
 
@@ -203,7 +199,7 @@ $(function() {
 
   // Mark as Complete Via Modal
   $("#mark").on("click", function() {
-    var todoID = +$("#hidden").val();
+    var todoID = +$("#hidden_id").val();
 
     if (newItemOnSave) {
       alert("Whoops! Cannot mark an unsaved item as complete!");
@@ -314,12 +310,14 @@ $(function() {
 
   function setModalFields(todoID) {
     var todo = todoList.getTodo(todoID);
+
     $("#title").val(todo.title);
     $("#due_day").val(todo.dueDay);
     $("#due_month").val(todo.dueMonth);
     $("#due_year").val(todo.dueYear);
     $("#description").val(todo.description);
-    $("#hidden").val(todo.id);
+    $("#hidden_id").val(todo.id);
+    $("#hidden_completed").val(todo.completed);
   }
 
   function resetModalFields() {
@@ -328,16 +326,25 @@ $(function() {
     $("#due_month").val("Month");
     $("#due_year").val("Year");
     $("#description").val("");
-    $("#hidden").val("");
+    $("#hidden_id").val("");
+    $("#hidden_completed").val("");
   }
 
   function getTodoDataFromModalFields() {
+    var hidden_completed;
+    if ($("#hidden_completed").val() === "true") {
+      hidden_completed = true;
+    } else {
+      hidden_completed = false;
+    }
     return {
       title: $("#title").val() || "No Title",
       dueDay: $("#due_day").val(),
       dueMonth: $("#due_month").val(),
       dueYear: $("#due_year").val(),
-      description: $("#description").val()
+      description: $("#description").val(),
+      id: $("#hidden_id").val(),
+      completed: hidden_completed
     };
   }
 
@@ -371,7 +378,6 @@ $(function() {
   function sortSidebarRows(a, b) {
     if (a.dueString === "No Due Date") { return -1; }
     if (b.dueString === "No Due Date") { return 1; }
-
     if (a.dueYear < b.dueYear) {
       return -1;
     } else if (a.dueYear > b.dueYear) {
