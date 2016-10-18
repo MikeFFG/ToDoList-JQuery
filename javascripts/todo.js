@@ -94,7 +94,7 @@ $(function() {
     },
     removeTodo: function(todoID) {
       for (var i = 0; i < this.count(); i++) {
-        if (this.list[i].id === +todoID) {
+        if (+this.list[i].id === +todoID) {
           this.list = sliceList(this.list, i);
           break;
         }
@@ -226,7 +226,7 @@ $(function() {
   // Delete Todo
   $contentTable.on("click", ".delete_item", function() {
     todoList.removeTodo($(this).closest("tr").data("id"));
-    sidebarList.removeTodo($(this).closest("tr").data("id"));
+    // sidebarList.removeTodo($(this).closest("tr").data("id"));
     sidebarList.update();
     syncContentView();
   });
