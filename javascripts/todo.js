@@ -17,7 +17,8 @@ $(function() {
   $(window).on("load", function() {
     Handlebars.registerPartial("todoRowTemplate", $("#todoRow").html());
     Handlebars.registerPartial("sidebarRowTemplate", $("#sidebarRow").html());
-    todoList.list = JSON.parse(localStorage.getItem("todoArray")) || [];
+    todoList.list = recreateListOnLoad();
+    // todoList.list = JSON.parse(localStorage.getItem("todoArray")) || [];
     // sidebarList.monthLists = JSON.parse(localStorage.getItem("sidebarArray")) || {};
     syncContentView();
     $("#all_list tr")[0].click();
@@ -114,9 +115,15 @@ $(function() {
   var sidebarList = {
     monthLists: {},
     update: function() {
-      // var self = this;
+      var self = this;
       // todoList.list.forEach(function(todo) {
-      //   self.addTodo(todo);
+      //   var month = todo.monthAndYear();
+      //   if (self.monthLists[month]) {
+      //     // self.monthLists[month]
+      //   } else {
+      //     self.monthLists[month] = 1;
+      //     // debugger;
+      //   }
       // });
     },
     addTodo: function(todo) {
@@ -197,6 +204,14 @@ $(function() {
     syncContentView();
   });
 
+  // Enter Key press to save on modal
+  // Need to handle edge cases
+  $("#modal").keypress(function(e) {
+    if (e.keyCode === 13) {
+      $("#save").click();
+    }
+  });
+
   // Mark as Complete Via Modal
   $("#mark").on("click", function() {
     var todoID = +$("#hidden_id").val();
@@ -272,7 +287,6 @@ $(function() {
     }
 
     setTitleCount(filteredList.length);
-    sidebarList.update();
     syncSidebarList();
   }
 
@@ -281,17 +295,17 @@ $(function() {
   }
 
   function syncSidebarList() {
-    var selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
+    // var selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
+    sidebarList.update();
+    setSidebarHeaderCounts();
+    // $sidebar.find("tbody tr").remove();
+    // setSidebarMonthTotals(sidebarList.monthLists, "#all_list");
+    // setSidebarMonthTotals(sidebarList.getCompleted(), "#completed_list");
 
-    setSidebarCounts();
-    $sidebar.find("tbody tr").remove();
-    setSidebarMonthTotals(sidebarList.monthLists, "#all_list");
-    setSidebarMonthTotals(sidebarList.getCompleted(), "#completed_list");
-
-    $sidebar.find("tr").eq(selectedIndex).addClass("selected");
+    // $sidebar.find("tr").eq(selectedIndex).addClass("selected");
   }
 
-  function setSidebarCounts() {
+  function setSidebarHeaderCounts() {
     $("#all_list thead .count").text(sidebarList.count);
     $("#completed_list thead .count").text(sidebarList.completedCount);
   }
@@ -415,7 +429,8 @@ $(function() {
   }
 
   function saveToLocalStorage() {
-    localStorage.setItem("todoArray", JSON.stringify(todoList.list));
+    Lockr.set('todoList', todoList.list);
+    // localStorage.setItem("todoArray", JSON.stringify(todoList.list));
     // localStorage.setItem("sidebarArray", JSON.stringify(sidebarList.monthLists));
   }
 
@@ -425,6 +440,25 @@ $(function() {
     } else {
       return 0;
     }
+  }
+
+  function recreateListOnLoad() {
+    var list = Lockr.get('todoList') || [],
+        todoList = [];
+
+    list.forEach(function(todo) {
+      var params = {},
+          newItem;
+
+      for (var prop in todo) {
+        params[prop] = todo[prop];
+      }
+
+      newItem = new Todo(params);
+      todoList.push(newItem);
+    });
+
+    return todoList;
   }
 
   function getCombinedTodoList() {
