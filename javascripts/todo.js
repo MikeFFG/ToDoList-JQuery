@@ -112,29 +112,76 @@ $(function() {
     }
   };
 
+  function findInMonthLists(month) {
+    var found = false;
+
+    // iterate through monthLists and see if found
+    for (var i = 0; i < sidebarList.monthLists.length; i++) {
+      if (sidebarList.monthLists[i].monthAndYear === month) {
+        sidebarList.monthLists[i].count++;
+        found = true;
+        break;
+      }
+    }
+
+    return found;
+  }
+
+  function findInCompletedLists(month) {
+    var found = false;
+
+    // iterate through monthLists and see if found
+    for (var i = 0; i < sidebarList.completedMonthLists.length; i++) {
+      if (sidebarList.completedMonthLists[i].monthAndYear === month) {
+        sidebarList.completedMonthLists[i].count++;
+        found = true;
+        break;
+      }
+    }
+
+    return found;
+  }
+
   var sidebarList = {
-    monthLists: {},
+    monthLists: [],
+    completedMonthLists: [],
     update: function() {
       var self = this;
-      // todoList.list.forEach(function(todo) {
-      //   var month = todo.monthAndYear();
-      //   if (self.monthLists[month]) {
-      //     // self.monthLists[month]
-      //   } else {
-      //     self.monthLists[month] = 1;
-      //     // debugger;
-      //   }
-      // });
+      this.clearMonthLists();
+
+      todoList.list.forEach(function(todo) {
+        var month = todo.monthAndYear();
+
+        if (!findInMonthLists(month)) {
+          self.monthLists.push({
+            monthAndYear: month,
+            count: 1
+          });
+        }
+
+        if (todo.completed) {
+          if (!findInCompletedLists(month)) {
+            self.completedMonthLists.push({
+              monthAndYear: month,
+              count: 1
+            });
+          }
+        }
+      });
+    },
+    clearMonthLists: function() {
+      this.monthLists = [];
+      this.completedMonthLists = [];
     },
     addTodo: function(todo) {
-      var month = todo.monthAndYear();
-      if (this.monthLists[month]) {
-        this.monthLists[month].push(todo);
-        this.monthLists[month].count++;
-      } else {
-        this.monthLists[month] = [todo];
-        this.monthLists[month].count = 1;
-      }
+      // var month = todo.monthAndYear();
+      // if (this.monthLists[month]) {
+      //   this.monthLists[month].push(todo);
+      //   this.monthLists[month].count++;
+      // } else {
+      //   this.monthLists[month] = [todo];
+      //   this.monthLists[month].count = 1;
+      // }
     },
     removeTodo: function(todoID) {
       for (var i = 0; i < this.count(); i++) {
@@ -295,14 +342,14 @@ $(function() {
   }
 
   function syncSidebarList() {
-    // var selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
+    var selectedIndex = $sidebar.find("tr.selected").index("#sidebar tr");
     sidebarList.update();
     setSidebarHeaderCounts();
-    // $sidebar.find("tbody tr").remove();
-    // setSidebarMonthTotals(sidebarList.monthLists, "#all_list");
-    // setSidebarMonthTotals(sidebarList.getCompleted(), "#completed_list");
+    $sidebar.find("tbody tr").remove();
+    setSidebarMonthTotals(sidebarList.monthLists, "#all_list");
+    setSidebarMonthTotals(sidebarList.completedMonthLists, "#completed_list");
 
-    // $sidebar.find("tr").eq(selectedIndex).addClass("selected");
+    $sidebar.find("tr").eq(selectedIndex).addClass("selected");
   }
 
   function setSidebarHeaderCounts() {
@@ -311,15 +358,17 @@ $(function() {
   }
 
   function setSidebarMonthTotals(list, listID) {
-    var allMonths = [];
-    for (var month in list) {
-      var monthObject = {
-        monthAndYear: month,
-        count: list[month].length
-      };
-      allMonths.push(monthObject);
-    }
-    $sidebar.find(listID + " tbody").html(sidebarListTemplate({ items: allMonths}));
+    // debugger;
+    // var allMonths = [];
+    // for (var month in list) {
+    //   var monthObject = {
+    //     monthAndYear: month,
+    //     count: list[month].length
+    //   };
+    //   allMonths.push(monthObject);
+    // }
+
+    $sidebar.find(listID + " tbody").html(sidebarListTemplate({items: list}));
   }
 
   function setModalFields(todoID) {
@@ -455,6 +504,7 @@ $(function() {
       }
 
       newItem = new Todo(params);
+      newItem.setValidDueDateProp();
       todoList.push(newItem);
     });
 
