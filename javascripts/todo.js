@@ -68,7 +68,30 @@ $(function() {
       });
     },
     getFiltered: function(filter) {
-      return this.list;
+      var filteredList;
+      // debugger;
+      if (filter.filter === "All Todos") {
+        filteredList = this.list;
+      } else if (filter.filter === "Completed") {
+        filteredList = this.getCompleted();
+      } else if (filter.filter === "No Due Date" &&
+                 filter.completed === false) {
+        filteredList = this.list.filter(todoHasInvalidDate);
+      } else if (filter.filter === "No Due Date" &&
+                 filter.completed === true) {
+        filteredList = this.getCompleted().filter(todoHasInvalidDate);
+      } else if (filter.completed === false) {
+        filteredList = this.list.filter(function(todo) {
+          return (todo.dueMonth + "/" + todo.dueYear === filter.filter);
+        });
+      } else if (filter.completed === true) {
+        filteredList = this.getCompleted().filter(function(todo) {
+          return (todo.dueMonth + "/" + todo.dueYear === filter.filter);
+        });
+      } else {
+        filteredList = this.list;
+      }
+      return filteredList;
     },
     getSorted: function() {
 
@@ -317,6 +340,22 @@ $(function() {
 
 /************************* View Helpers **************************/
 
+  function getSelectedRow() {
+    var $selectedRow = $("tr.selected"),
+    filterString = $selectedRow.find("th").eq(1).text() ||
+                   $selectedRow.find("td").eq(1).text(),
+    isCompleted;
+    if ($selectedRow.parents("table").is("#all_list")) {
+      isCompleted = false;
+    } else {
+      isCompleted = true;
+    }
+    return {
+      filter: filterString,
+      completed: isCompleted
+    };
+  }
+
   function showModal() {
     $modal.fadeIn(fadeDuration);
     $modal_layer.fadeIn(fadeDuration);
@@ -328,7 +367,7 @@ $(function() {
   }
 
   function syncContentView() {
-    var filteredList = todoList.getFiltered();
+    var filteredList = todoList.getFiltered(getSelectedRow());
     if (filteredList) {
       $contentTable.find("tbody").html(todoListTemplate({ todos: filteredList}));
     }
@@ -420,7 +459,6 @@ $(function() {
     function todoMatchesFilterString(todo) {
       return (todo.dueMonth + "/" + todo.dueYear === filterString);
     }
-
     if (filterString === "All Todos") {
       return getCombinedTodoList();
     } else if (filterString === "Completed") {
