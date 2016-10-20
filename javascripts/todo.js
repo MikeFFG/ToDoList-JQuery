@@ -18,8 +18,6 @@ $(function() {
     Handlebars.registerPartial("todoRowTemplate", $("#todoRow").html());
     Handlebars.registerPartial("sidebarRowTemplate", $("#sidebarRow").html());
     todoList.list = recreateListOnLoad();
-    // todoList.list = JSON.parse(localStorage.getItem("todoArray")) || [];
-    // sidebarList.monthLists = JSON.parse(localStorage.getItem("sidebarArray")) || {};
     syncContentView();
     $("#all_list tr")[0].click();
   });
@@ -69,7 +67,7 @@ $(function() {
     },
     getFiltered: function(filter) {
       var filteredList;
-      // debugger;
+
       if (filter.filter === "All Todos") {
         filteredList = this.list;
       } else if (filter.filter === "Completed") {
@@ -93,12 +91,8 @@ $(function() {
       }
       return filteredList;
     },
-    getSorted: function() {
-
-    },
     addTodo: function(todo) {
       this.list.push(todo);
-      sidebarList.addTodo(todo);
     },
     markAsComplete: function(todoID) {
       for (var i = 0; i < this.count(); i++) {
@@ -135,36 +129,6 @@ $(function() {
     }
   };
 
-  function findInMonthLists(month) {
-    var found = false;
-
-    // iterate through monthLists and see if found
-    for (var i = 0; i < sidebarList.monthLists.length; i++) {
-      if (sidebarList.monthLists[i].monthAndYear === month) {
-        sidebarList.monthLists[i].count++;
-        found = true;
-        break;
-      }
-    }
-
-    return found;
-  }
-
-  function findInCompletedLists(month) {
-    var found = false;
-
-    // iterate through monthLists and see if found
-    for (var i = 0; i < sidebarList.completedMonthLists.length; i++) {
-      if (sidebarList.completedMonthLists[i].monthAndYear === month) {
-        sidebarList.completedMonthLists[i].count++;
-        found = true;
-        break;
-      }
-    }
-
-    return found;
-  }
-
   var sidebarList = {
     monthLists: [],
     completedMonthLists: [],
@@ -195,27 +159,6 @@ $(function() {
     clearMonthLists: function() {
       this.monthLists = [];
       this.completedMonthLists = [];
-    },
-    addTodo: function(todo) {
-      // var month = todo.monthAndYear();
-      // if (this.monthLists[month]) {
-      //   this.monthLists[month].push(todo);
-      //   this.monthLists[month].count++;
-      // } else {
-      //   this.monthLists[month] = [todo];
-      //   this.monthLists[month].count = 1;
-      // }
-    },
-    removeTodo: function(todoID) {
-      for (var i = 0; i < this.count(); i++) {
-        if (this.monthLists[i].id === +todoID) {
-          this.monthLists = sliceList(this.monthLists, i);
-          break;
-        }
-      }
-    },
-    getMonth: function(month) {
-      return this.monthLists[month];
     },
     getCompletedMonth: function(month) {
       return this.monthLists[month].filter(function(todo) {
@@ -311,7 +254,6 @@ $(function() {
   // Delete Todo
   $contentTable.on("click", ".delete_item", function() {
     todoList.removeTodo($(this).closest("tr").data("id"));
-    // sidebarList.removeTodo($(this).closest("tr").data("id"));
     sidebarList.update();
     syncContentView();
   });
@@ -397,16 +339,6 @@ $(function() {
   }
 
   function setSidebarMonthTotals(list, listID) {
-    // debugger;
-    // var allMonths = [];
-    // for (var month in list) {
-    //   var monthObject = {
-    //     monthAndYear: month,
-    //     count: list[month].length
-    //   };
-    //   allMonths.push(monthObject);
-    // }
-
     $sidebar.find(listID + " tbody").html(sidebarListTemplate({items: list}));
   }
 
@@ -451,74 +383,38 @@ $(function() {
   }
 
 /************************** Utilities **************************/
+  function findInMonthLists(month) {
+    var found = false;
 
-  function filterList() {
-    var $selectedRow = $("tr.selected"),
-        filterString = $selectedRow.find("th").eq(1).text() ||
-                       $selectedRow.find("td").eq(1).text();
-    function todoMatchesFilterString(todo) {
-      return (todo.dueMonth + "/" + todo.dueYear === filterString);
-    }
-    if (filterString === "All Todos") {
-      return getCombinedTodoList();
-    } else if (filterString === "Completed") {
-      return todoList.getCompleted();
-    } else if (filterString === "No Due Date" &&
-              $selectedRow.parents("table").is("#all_list")) {
-      return getCombinedTodoList().filter(todoHasInvalidDate);
-    } else if (filterString === "No Due Date" &&
-              $selectedRow.parents("table").is("#completed_list")) {
-      return todoList.getCompleted().filter(todoHasInvalidDate);
-    } else if ($selectedRow.parents("table").is("#completed_list")) {
-      return todoList.getCompleted().filter(todoMatchesFilterString);
-    } else {
-      return getCombinedTodoList().filter(todoMatchesFilterString);
-    }
-  }
-
-  function sortSidebarRows(a, b) {
-    if (a.dueString === "No Due Date") { return -1; }
-    if (b.dueString === "No Due Date") { return 1; }
-    if (a.dueYear < b.dueYear) {
-      return -1;
-    } else if (a.dueYear > b.dueYear) {
-      return 1;
-    } else {
-      if (a.dueMonth < b.dueMonth) {
-        return -1;
-      } else if (a.dueMonth > b.dueMonth) {
-        return 1;
+    for (var i = 0; i < sidebarList.monthLists.length; i++) {
+      if (sidebarList.monthLists[i].monthAndYear === month) {
+        sidebarList.monthLists[i].count++;
+        found = true;
+        break;
       }
     }
-    return 0;
+    return found;
   }
 
-  function findMonthMatch(allMonths, month) {
-    for (var i = 0; i < allMonths.length; i++) {
-      if (allMonths[i].dueString === month.dueString) {
-        allMonths[i].count++;
-        return true;
+  function findInCompletedLists(month) {
+    var found = false;
+
+    for (var i = 0; i < sidebarList.completedMonthLists.length; i++) {
+      if (sidebarList.completedMonthLists[i].monthAndYear === month) {
+        sidebarList.completedMonthLists[i].count++;
+        found = true;
+        break;
       }
     }
-    return false;
+    return found;
   }
 
   function todoHasInvalidDate(todo) {
     return todo.validDueDate === false;
   }
 
-  function setDateString(month) {
-    if (month.dueMonth !== "Month" && month.dueYear !== "Year") {
-      month.dueString = month.dueMonth + "/" + month.dueYear;
-    } else {
-      month.dueString =  "No Due Date";
-    }
-  }
-
   function saveToLocalStorage() {
     Lockr.set('todoList', todoList.list);
-    // localStorage.setItem("todoArray", JSON.stringify(todoList.list));
-    // localStorage.setItem("sidebarArray", JSON.stringify(sidebarList.monthLists));
   }
 
   function setUniqueID() {
@@ -540,17 +436,11 @@ $(function() {
       for (var prop in todo) {
         params[prop] = todo[prop];
       }
-
       newItem = new Todo(params);
       newItem.setValidDueDateProp();
       todoList.push(newItem);
     });
-
     return todoList;
-  }
-
-  function getCombinedTodoList() {
-    return todoList.list;
   }
 
   function sliceList(list, index) {
