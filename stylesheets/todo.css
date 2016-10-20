@@ -121,6 +121,7 @@ label,
 #content {
   text-align: left;
   padding: 66px 0 0 24px;
+  min-width: 300px;
   max-width: 900px;
   overflow: hidden;
 }
