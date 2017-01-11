@@ -2,7 +2,7 @@
 
 This is a To Do List app I created as a portfolio item to show off certain technical skills.
 
-### Contribution guidelines ###
+### Technologies ###
 
 * HTML5
 * CSS3
